@@ -48,10 +48,19 @@ create_worktree() {
   local dir="$1"
   local branch="$2"
 
-  if git worktree list --porcelain | grep -Fxq "worktree $dir"; then
-    if [ ! -d "$dir" ]; then
-      echo "Error: git still has a worktree registered at $dir but the directory is missing." >&2
-      echo "Run 'git worktree prune' manually, then re-run this script." >&2
+  # Check the directory itself rather than string-matching paths against
+  # `git worktree list` output -- the same directory can be reported with
+  # different (but equivalent) path spellings across invocations, which
+  # would make an exact string match miss a worktree that genuinely exists.
+  if [ -d "$dir" ]; then
+    if ! git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      echo "Error: $dir already exists but is not a git worktree. Remove or rename it and re-run." >&2
+      exit 1
+    fi
+    local dir_common_git
+    dir_common_git="$(cd "$(git -C "$dir" rev-parse --git-common-dir)" && pwd)"
+    if [ "$dir_common_git" != "$COMMON_GIT_DIR" ]; then
+      echo "Error: $dir is a git worktree, but not one belonging to this repository. Remove or rename it and re-run." >&2
       exit 1
     fi
     local actual_branch
@@ -63,11 +72,6 @@ create_worktree() {
     fi
     echo "OK: worktree already exists: $dir (branch: $branch)"
     return
-  fi
-
-  if [ -d "$dir" ]; then
-    echo "Error: $dir already exists but is not a registered git worktree. Remove or rename it and re-run." >&2
-    exit 1
   fi
 
   if git show-ref --verify --quiet "refs/heads/$branch"; then

@@ -8,7 +8,7 @@
 
 ## Why
 
-Running two coding agents on the same checkout is a recipe for lost work: one agent's edit clobbers the other's mid-write, or you spend more time reconciling diffs than either agent spent writing code. `multi-agent-coding-kit` gives each agent its own **git worktree** — a separate working directory backed by the same repo — so they can edit files in parallel with zero risk of overwriting each other, and merge their work back through ordinary pull requests.
+Running two coding agents on the same checkout is a recipe for lost work: one agent's edit clobbers the other's mid-write, or you spend more time reconciling diffs than either agent spent writing code. `multi-agent-coding-kit` gives each agent its own **git worktree** — a separate working directory backed by the same repo — so they can edit files in parallel without clobbering each other's in-progress changes on disk, and merge their work back through ordinary pull requests. Worktrees eliminate *filesystem* collisions; they don't eliminate normal Git *merge* conflicts if both agents touch the same file — see the [FAQ](#faq).
 
 ## Quickstart
 
@@ -17,18 +17,20 @@ Running two coding agents on the same checkout is a recipe for lost work: one ag
 git clone https://github.com/pavan3031/multi-agent-coding-kit.git
 cd multi-agent-coding-kit
 
-# 2. Create isolated worktrees for each agent (idempotent, safe to re-run)
+# 2. Create isolated worktrees for each agent, both from the same base commit
+#    (idempotent, safe to re-run)
 scripts/setup-worktrees.sh
 # or with custom branch names:
-# scripts/setup-worktrees.sh feature/claude-work feature/astra-work
+# scripts/setup-worktrees.sh feature/claude-work feature/codex-work
 
 # 3. Edit TASKS.md to define who owns what (files/directories, not just tasks)
 
 # 4. Launch each agent in its own worktree
 scripts/launch-claude.sh   # cd's into ../multi-agent-coding-kit-claude and runs `claude`
-scripts/launch-astra.sh    # cd's into ../multi-agent-coding-kit-astra and runs `codex`
+scripts/launch-codex.sh    # cd's into ../multi-agent-coding-kit-codex and runs `codex`
 
-# 5. When a task is done, open a PR from that branch into main.
+# 5. When a task is done, the AGENT opens a PR from its branch into main —
+#    agents never merge directly to main themselves.
 #    CI lints + tests every PR the same way, regardless of which agent wrote it.
 gh pr create --base main --head feature/claude-work
 ```
@@ -41,16 +43,16 @@ scripts/cleanup-worktrees.sh
 
 ## Example session
 
-`claude` and `codex`, each in their own worktree, each doing their `TASKS.md`-assigned scope, merged with zero conflicts:
+`claude` and `codex`, each in their own worktree, each doing their `TASKS.md`-assigned scope:
 
 ```console
 $ ./scripts/setup-worktrees.sh
-Creating worktree ../multi-agent-coding-kit-claude on new branch feature/claude-work (from main)
-Creating worktree ../multi-agent-coding-kit-astra on new branch feature/astra-work (from main)
+Creating worktree ../multi-agent-coding-kit-claude on new branch feature/claude-work (from main @ a1b2c3d)
+Creating worktree ../multi-agent-coding-kit-codex on new branch feature/codex-work (from main @ a1b2c3d)
 
-Worktrees ready:
+Worktrees ready (base: main @ a1b2c3d):
    Claude: ../multi-agent-coding-kit-claude   (branch: feature/claude-work)
-   Astra:  ../multi-agent-coding-kit-astra    (branch: feature/astra-work)
+   Codex:  ../multi-agent-coding-kit-codex    (branch: feature/codex-work)
 
 $ cd ../multi-agent-coding-kit-claude
 $ claude -p "Create examples/sample-app/src/api/health.js exporting a health() \
@@ -58,7 +60,7 @@ $ claude -p "Create examples/sample-app/src/api/health.js exporting a health() \
 Created `examples/sample-app/src/api/health.js` exporting a `health` function
 that returns `'ok'`.
 
-$ cd ../multi-agent-coding-kit-astra
+$ cd ../multi-agent-coding-kit-codex
 $ codex exec --sandbox workspace-write "Create examples/sample-app/src/cli/index.js \
     exporting a cli() function returning 'cli'. ES module syntax."
 Created only `examples/sample-app/src/cli/index.js`:
@@ -67,26 +69,15 @@ Created only `examples/sample-app/src/cli/index.js`:
     return 'cli';
   }
 
-$ cd ../multi-agent-coding-kit
-$ git merge --no-edit feature/claude-work && git merge --no-edit feature/astra-work
-$ git log --oneline --graph --all
-*   a847f3f Merge branch 'feature/astra-work'
-|\
-| * a6ef2d7 Add CLI entrypoint to sample-app
-* |   67f6969 Merge branch 'feature/claude-work'
-|\ \
-| * | ed09f52 Add health check endpoint to sample-app
-| |/
-* / 3ca0df2 Fix eslint flat config to actually enable eslint:recommended rules
-|/
-* 0fcedcf Initial commit: multi-agent-coding-kit starter template
+# The human maintainer reviews both PRs and merges into main.
+# (Agents never merge to main themselves — see CLAUDE.md/AGENTS.md.)
 ```
 
-Zero merge conflicts, both agents' files present, `npm run lint && npm test` still green afterward. `docs/demo.tape` is a [VHS](https://github.com/charmbracelet/vhs) script that replays this exact session — see [Rendering the demo GIF](#rendering-the-demo-gif) to turn it into a video.
+Both agents started from the exact same commit, edited disjoint files, and opened separate PRs — no working-directory collisions, and in this case no merge conflicts either. `docs/demo.tape` is a [VHS](https://github.com/charmbracelet/vhs) script that replays a session like this one — see [Rendering the demo GIF](#rendering-the-demo-gif) to turn it into a video.
 
 ## Architecture
 
-Each agent gets its own working directory, checked out from the same `.git`, on its own branch. Nothing is shared except the object database — so file edits in one worktree can never race with edits in another.
+Each agent gets its own working directory, checked out from the same `.git`, on its own branch, both starting from the identical base commit. Nothing is shared except the object database — so file edits in one worktree can never race with edits in another. This isolates *filesystem* writes; it does not by itself prevent a *merge* conflict if both branches later change the same lines (see [FAQ](#faq)).
 
 ```mermaid
 flowchart LR
@@ -100,23 +91,24 @@ flowchart LR
         CF -->|edits| CB
     end
 
-    subgraph AstraWT["../multi-agent-coding-kit-astra"]
-        AB["branch: feature/astra-work"]
-        AF["Codex/Astra session"]
-        AF -->|edits| AB
+    subgraph CodexWT["../multi-agent-coding-kit-codex"]
+        XB["branch: feature/codex-work"]
+        XF["Codex session"]
+        XF -->|edits| XB
     end
 
     CB -.shared object store.-> G
-    AB -.shared object store.-> G
+    XB -.shared object store.-> G
 
     CB -->|PR| M["main"]
-    AB -->|PR| M
+    XB -->|PR| M
     M --> CI["CI: lint + test\n(.github/workflows/ci.yml)"]
 ```
 
-- **TASKS.md** is the contract: it maps tasks to owner, branch, status, and owned files/directories, so each agent (and any human reviewer) knows the boundaries.
+- **TASKS.md** is the contract: it maps tasks to owner, branch, status, and owned files/directories, so each agent (and any human reviewer) knows the boundaries. It's shared coordination metadata — each agent may edit only the `Status` cell of its own row; everything else needs the human maintainer's approval.
 - **CLAUDE.md** and **AGENTS.md** carry the same shared rules (coding style, test commands, "stay in your scope") so both agents behave consistently — Claude Code reads `CLAUDE.md`, Codex/GPT-based agents read `AGENTS.md`.
-- **scripts/** automate creating, launching, and tearing down the worktrees.
+- **scripts/** automate creating, launching, and tearing down the worktrees, and resolve the correct paths whether run from the main repo or from inside a worktree.
+- **tests/integration.sh** exercises the scripts themselves (worktree creation, branch/base-commit correctness, idempotency, cleanup safety) against a disposable clone — run in CI on every push.
 - **examples/sample-app/** is a tiny Node app that exists purely so the scripts and CI have something real to operate on.
 
 ## Requirements
@@ -155,10 +147,10 @@ agg demo.cast docs/demo.gif
 ## FAQ
 
 **Can I use 3+ agents?**
-Yes. `scripts/setup-worktrees.sh` takes two branch names as a convenience default, but the underlying pattern (`git worktree add ../repo-<agent> <branch>`) works for any number of agents. Copy the script's `create_worktree`/`copy_shared_files` calls for a third, fourth, etc., and add corresponding rows to `TASKS.md`.
+The underlying pattern (`git worktree add ../repo-<agent> <branch> <base-sha>`) works for any number of agents, but `scripts/setup-worktrees.sh` as shipped is hard-coded to two (Claude and Codex). Adding a third means copying the script's `create_worktree` call for a new agent and a matching `launch-<agent>.sh`, plus a corresponding row in `TASKS.md` — it's not a one-line config change in this version.
 
 **What if both agents touch the same file?**
-Don't let them — that's what `TASKS.md`'s ownership column and the "never edit files outside your assigned scope" rule in `CLAUDE.md`/`AGENTS.md` are for. If a change genuinely needs to touch a shared file (e.g. `package.json`), keep the diff minimal and call it out explicitly in the PR description so a human can review the overlap.
+Don't let them — that's what `TASKS.md`'s ownership column and the "never edit files outside your assigned scope" rule in `CLAUDE.md`/`AGENTS.md` are for. There's no "small shared-file exception": if a change genuinely needs to touch a file outside an agent's scope (e.g. `package.json`), the agent records the requested change in its PR description or handoff notes instead of editing it directly, and a human or the owning agent makes that edit.
 
 **How does CI catch conflicts?**
 Worktrees prevent *working-directory* conflicts (two processes writing the same file on disk at once). They don't prevent *merge* conflicts, which are a normal git problem solved the normal way: `.github/workflows/ci.yml` runs lint + test on every PR into `main`, so a bad merge or a semantic conflict between the two agents' branches is caught before it lands, regardless of which agent (or human) opened the PR.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Removes the Claude and Astra worktrees created by setup-worktrees.sh.
+# Removes the Claude and Codex worktrees created by setup-worktrees.sh.
 # Does NOT delete the branches, only the worktree directories.
 #
 # Usage: scripts/cleanup-worktrees.sh [--force]
@@ -15,21 +15,37 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 1
 fi
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+COMMON_GIT_DIR="$(git rev-parse --git-common-dir)"
+COMMON_GIT_DIR="$(cd "$COMMON_GIT_DIR" && pwd)"
+REPO_ROOT="$(dirname "$COMMON_GIT_DIR")"
 REPO_NAME="$(basename "$REPO_ROOT")"
 PARENT_DIR="$(dirname "$REPO_ROOT")"
 
 FAILED=0
 
-for dir in "$PARENT_DIR/${REPO_NAME}-claude" "$PARENT_DIR/${REPO_NAME}-astra"; do
-  if git -C "$REPO_ROOT" worktree list --porcelain | grep -Fxq "worktree $dir"; then
-    echo "Removing worktree $dir"
-    if ! git -C "$REPO_ROOT" worktree remove $FORCE_FLAG "$dir"; then
-      echo "  FAILED to remove $dir (it may have uncommitted changes -- retry with --force)" >&2
-      FAILED=1
-    fi
-  else
+for dir in "$PARENT_DIR/${REPO_NAME}-claude" "$PARENT_DIR/${REPO_NAME}-codex"; do
+  if ! git -C "$REPO_ROOT" worktree list --porcelain | grep -Fxq "worktree $dir"; then
     echo "No worktree registered at $dir, skipping"
+    continue
+  fi
+
+  if [ -z "$FORCE_FLAG" ]; then
+    DIRTY="$(git -C "$dir" status --porcelain 2>/dev/null || true)"
+    if [ -n "$DIRTY" ]; then
+      echo "ERROR: $dir has uncommitted changes, refusing to remove it:" >&2
+      while IFS= read -r line; do
+        echo "  $line" >&2
+      done <<< "$DIRTY"
+      echo "Commit or stash those changes, or re-run with --force to discard them." >&2
+      FAILED=1
+      continue
+    fi
+  fi
+
+  echo "Removing worktree $dir"
+  if ! git -C "$REPO_ROOT" worktree remove $FORCE_FLAG "$dir"; then
+    echo "  FAILED to remove $dir" >&2
+    FAILED=1
   fi
 done
 

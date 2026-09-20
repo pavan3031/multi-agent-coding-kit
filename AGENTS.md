@@ -2,8 +2,8 @@
 
 This repo is set up for **multiple coding agents to work side by side** in
 isolated git worktrees, so they never overwrite each other's files. If you're
-an OpenAI/Codex-based agent (e.g. GPT-6 Astra) reading this: you are likely
-running inside `../<repo>-astra` (see
+an OpenAI Codex/GPT-based agent reading this: you are likely running inside
+`../<repo>-codex` (see
 [scripts/setup-worktrees.sh](scripts/setup-worktrees.sh)), on the branch
 assigned to you in [TASKS.md](TASKS.md). A second agent (e.g. Claude Code,
 see [CLAUDE.md](CLAUDE.md)) may be working in a sibling worktree on a
@@ -20,6 +20,11 @@ Before touching any file, check the **Files/Directories owned** column in
 [TASKS.md](TASKS.md) for your assigned row. Only edit files inside your
 scope. If you need something outside it (a shared interface, a config file),
 say so explicitly and coordinate rather than editing it directly.
+
+The one exception is [TASKS.md](TASKS.md) itself: you may edit the `Status`
+cell of your own row without asking, since that's how you report progress.
+Everything else in that file (adding tasks, changing ownership or branches,
+editing another agent's row) requires the human maintainer's approval.
 
 ### 2. Coding style
 
@@ -38,7 +43,7 @@ Run these from the relevant package directory (e.g. `examples/sample-app/`)
 before committing:
 
 ```bash
-npm install
+npm ci
 npm run lint
 npm test
 ```
@@ -51,13 +56,17 @@ validated identically, so don't skip this locally.
 
 This is the most important rule in this file. Two agents editing the same
 file in two different worktrees is exactly the conflict this setup exists to
-prevent. If your task requires a change outside your scope:
+prevent. Do not edit a shared or repo-wide file (e.g. `package.json`,
+`.github/workflows/`) unless [TASKS.md](TASKS.md) explicitly assigns you
+that file. If your task needs a change outside your scope:
 
-- Update [TASKS.md](TASKS.md) to reflect the real ownership, or
-- Flag it in your PR description and let a human/the owning agent make the
-  change, or
-- If it's a genuinely shared file (e.g. `package.json` dependencies), make
-  the smallest possible change and call it out clearly in the commit message.
+- Update [TASKS.md](TASKS.md) to reflect the real ownership and get it
+  agreed first, or
+- Record the requested change in your PR description or handoff notes and
+  let a human or the owning agent make the edit.
+
+There is no "small enough to just do it" exception — ownership is decided
+in TASKS.md, not judged case by case.
 
 ### 5. Commits and PRs
 
@@ -69,8 +78,8 @@ prevent. If your task requires a change outside your scope:
 
 <!-- SHARED-RULES-END -->
 
-## Codex/Astra-specific notes
+## Codex-specific notes
 
-- Use `scripts/launch-astra.sh` to enter your worktree and start a session.
+- Use `scripts/launch-codex.sh` to enter your worktree and start a session.
 - If you're unsure whether a file is in scope, ask before editing rather than
   guessing.

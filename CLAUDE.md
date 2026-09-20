@@ -20,6 +20,11 @@ Before touching any file, check the **Files/Directories owned** column in
 scope. If you need something outside it (a shared interface, a config file),
 say so explicitly and coordinate rather than editing it directly.
 
+The one exception is [TASKS.md](TASKS.md) itself: you may edit the `Status`
+cell of your own row without asking, since that's how you report progress.
+Everything else in that file (adding tasks, changing ownership or branches,
+editing another agent's row) requires the human maintainer's approval.
+
 ### 2. Coding style
 
 - JavaScript/TypeScript: match the existing formatting in the file you're
@@ -37,7 +42,7 @@ Run these from the relevant package directory (e.g. `examples/sample-app/`)
 before committing:
 
 ```bash
-npm install
+npm ci
 npm run lint
 npm test
 ```
@@ -50,13 +55,17 @@ validated identically, so don't skip this locally.
 
 This is the most important rule in this file. Two agents editing the same
 file in two different worktrees is exactly the conflict this setup exists to
-prevent. If your task requires a change outside your scope:
+prevent. Do not edit a shared or repo-wide file (e.g. `package.json`,
+`.github/workflows/`) unless [TASKS.md](TASKS.md) explicitly assigns you
+that file. If your task needs a change outside your scope:
 
-- Update [TASKS.md](TASKS.md) to reflect the real ownership, or
-- Flag it in your PR description and let a human/the owning agent make the
-  change, or
-- If it's a genuinely shared file (e.g. `package.json` dependencies), make
-  the smallest possible change and call it out clearly in the commit message.
+- Update [TASKS.md](TASKS.md) to reflect the real ownership and get it
+  agreed first, or
+- Record the requested change in your PR description or handoff notes and
+  let a human or the owning agent make the edit.
+
+There is no "small enough to just do it" exception — ownership is decided
+in TASKS.md, not judged case by case.
 
 ### 5. Commits and PRs
 

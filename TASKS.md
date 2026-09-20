@@ -13,8 +13,16 @@ sync with the "Branch" column.
 | Task | Owner | Branch | Status | Files/Directories owned |
 |------|-------|--------|--------|--------------------------|
 | Build REST API for sample app | Claude | `feature/claude-work` | In Progress | `examples/sample-app/src/api/`, `examples/sample-app/test/api/` |
-| Build CLI/frontend for sample app | Astra | `feature/astra-work` | In Progress | `examples/sample-app/src/cli/`, `examples/sample-app/test/cli/` |
+| Build CLI for sample app | Codex | `feature/codex-work` | In Progress | `examples/sample-app/src/cli/`, `examples/sample-app/test/cli/` |
 | Review + merge PRs | Human | `main` | Ongoing | `.github/`, repo-wide config |
+
+### TASKS.md exception
+
+This file itself is shared coordination metadata, not owned by any single
+agent. Each agent may edit **only the `Status` cell of its own row** without
+needing extra permission. Adding a task, changing an owner, changing a
+branch, or editing another agent's row requires the human maintainer's
+approval first.
 
 ## Adding a new task
 

@@ -2,11 +2,11 @@
 # Removes the Claude and Codex worktrees created by setup-worktrees.sh.
 # Does NOT delete the branches, only the worktree directories.
 #
-# Usage: scripts/cleanup-worktrees.sh [--force]
+# Usage: scripts/cleanup-worktrees.sh [--force-discard-changes]
 set -euo pipefail
 
 FORCE_FLAG=""
-if [ "${1:-}" = "--force" ]; then
+if [ "${1:-}" = "--force-discard-changes" ]; then
   FORCE_FLAG="--force"
 fi
 
@@ -43,7 +43,7 @@ for dir in "$PARENT_DIR/${REPO_NAME}-claude" "$PARENT_DIR/${REPO_NAME}-codex"; d
       while IFS= read -r line; do
         echo "  $line" >&2
       done <<< "$DIRTY"
-      echo "Commit or stash those changes, or re-run with --force to discard them." >&2
+      echo "Commit or stash those changes, or re-run with --force-discard-changes to discard them." >&2
       FAILED=1
       continue
     fi

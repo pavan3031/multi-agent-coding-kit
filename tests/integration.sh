@@ -94,7 +94,7 @@ RESULT="$(cd "$CODEX_DIR" && PATH="$FAKE_BIN:$PATH" "$CLONE/scripts/launch-claud
 check "launch-claude.sh run from the codex worktree still lands in the claude worktree" \
   [ "$RESULT" = "$CLAUDE_DIR" ]
 
-echo "== testing cleanup refuses to remove a dirty worktree without --force =="
+echo "== testing cleanup refuses to remove a dirty worktree without --force-discard-changes =="
 echo "dirty" >> "$CLAUDE_DIR/README.md"
 if ./scripts/cleanup-worktrees.sh > /tmp/cleanup_out.$$ 2>&1; then
   echo "  FAIL: cleanup should have exited non-zero on a dirty worktree" >&2
@@ -105,8 +105,8 @@ fi
 check "dirty claude worktree was NOT removed" test -d "$CLAUDE_DIR"
 rm -f /tmp/cleanup_out.$$
 
-echo "== running cleanup-worktrees.sh --force =="
-./scripts/cleanup-worktrees.sh --force
+echo "== running cleanup-worktrees.sh --force-discard-changes =="
+./scripts/cleanup-worktrees.sh --force-discard-changes
 check "claude worktree removed" test ! -d "$CLAUDE_DIR"
 check "codex worktree removed" test ! -d "$CODEX_DIR"
 

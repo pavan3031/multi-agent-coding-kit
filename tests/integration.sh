@@ -39,11 +39,13 @@ git config user.name "Integration Test"
 echo "== running setup-worktrees.sh =="
 ./scripts/setup-worktrees.sh test/claude-ci test/codex-ci
 
-CLAUDE_DIR="${CLONE}-claude"
-CODEX_DIR="${CLONE}-codex"
+check "claude worktree directory exists" test -d "${CLONE}-claude"
+check "codex worktree directory exists" test -d "${CLONE}-codex"
 
-check "claude worktree directory exists" test -d "$CLAUDE_DIR"
-check "codex worktree directory exists" test -d "$CODEX_DIR"
+# Canonicalize (resolve symlinks/mount aliases) so later string comparisons
+# match what the scripts themselves resolve internally via `pwd -P`.
+CLAUDE_DIR="$(cd "${CLONE}-claude" && pwd -P)"
+CODEX_DIR="$(cd "${CLONE}-codex" && pwd -P)"
 
 CLAUDE_BRANCH="$(git -C "$CLAUDE_DIR" symbolic-ref --short HEAD)"
 CODEX_BRANCH="$(git -C "$CODEX_DIR" symbolic-ref --short HEAD)"
@@ -67,11 +69,11 @@ FAKE_BIN="$WORK/fakebin"
 mkdir -p "$FAKE_BIN"
 cat > "$FAKE_BIN/claude" <<'EOF'
 #!/usr/bin/env bash
-pwd
+pwd -P
 EOF
 cat > "$FAKE_BIN/codex" <<'EOF'
 #!/usr/bin/env bash
-pwd
+pwd -P
 EOF
 chmod +x "$FAKE_BIN/claude" "$FAKE_BIN/codex"
 

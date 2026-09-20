@@ -16,7 +16,7 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
 fi
 
 COMMON_GIT_DIR="$(git rev-parse --git-common-dir)"
-COMMON_GIT_DIR="$(cd "$COMMON_GIT_DIR" && pwd)"
+COMMON_GIT_DIR="$(cd "$COMMON_GIT_DIR" && pwd -P)"
 REPO_ROOT="$(dirname "$COMMON_GIT_DIR")"
 REPO_NAME="$(basename "$REPO_ROOT")"
 PARENT_DIR="$(dirname "$REPO_ROOT")"
@@ -24,7 +24,14 @@ PARENT_DIR="$(dirname "$REPO_ROOT")"
 FAILED=0
 
 for dir in "$PARENT_DIR/${REPO_NAME}-claude" "$PARENT_DIR/${REPO_NAME}-codex"; do
-  if ! git -C "$REPO_ROOT" worktree list --porcelain | grep -Fxq "worktree $dir"; then
+  # Check the directory itself rather than string-matching paths against
+  # `git worktree list` output -- see setup-worktrees.sh for why.
+  if [ ! -d "$dir" ] || ! git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "No worktree registered at $dir, skipping"
+    continue
+  fi
+  dir_common_git="$(cd "$(git -C "$dir" rev-parse --git-common-dir)" && pwd -P)"
+  if [ "$dir_common_git" != "$COMMON_GIT_DIR" ]; then
     echo "No worktree registered at $dir, skipping"
     continue
   fi

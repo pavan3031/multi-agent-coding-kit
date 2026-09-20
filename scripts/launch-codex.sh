@@ -12,7 +12,7 @@ fi
 # one of the worktrees (git rev-parse --show-toplevel would otherwise
 # return the worktree's own path, producing a doubled -codex-codex dir).
 COMMON_GIT_DIR="$(git rev-parse --git-common-dir)"
-COMMON_GIT_DIR="$(cd "$COMMON_GIT_DIR" && pwd)"
+COMMON_GIT_DIR="$(cd "$COMMON_GIT_DIR" && pwd -P)"
 REPO_ROOT="$(dirname "$COMMON_GIT_DIR")"
 REPO_NAME="$(basename "$REPO_ROOT")"
 PARENT_DIR="$(dirname "$REPO_ROOT")"

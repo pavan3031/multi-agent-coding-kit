@@ -23,7 +23,7 @@ fi
 # from inside one of the worktrees it created (git rev-parse --show-toplevel
 # would otherwise return the worktree's own path, not the main repo's).
 COMMON_GIT_DIR="$(git rev-parse --git-common-dir)"
-COMMON_GIT_DIR="$(cd "$COMMON_GIT_DIR" && pwd)"
+COMMON_GIT_DIR="$(cd "$COMMON_GIT_DIR" && pwd -P)"
 REPO_ROOT="$(dirname "$COMMON_GIT_DIR")"
 REPO_NAME="$(basename "$REPO_ROOT")"
 PARENT_DIR="$(dirname "$REPO_ROOT")"
@@ -58,7 +58,7 @@ create_worktree() {
       exit 1
     fi
     local dir_common_git
-    dir_common_git="$(cd "$(git -C "$dir" rev-parse --git-common-dir)" && pwd)"
+    dir_common_git="$(cd "$(git -C "$dir" rev-parse --git-common-dir)" && pwd -P)"
     if [ "$dir_common_git" != "$COMMON_GIT_DIR" ]; then
       echo "Error: $dir is a git worktree, but not one belonging to this repository. Remove or rename it and re-run." >&2
       exit 1

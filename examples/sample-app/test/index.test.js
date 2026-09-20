@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { greet } from "../src/index.js";
 
 test("greets the given name", () => {
-  assert.equal(greet("Astra"), "Hello, Astra! This is the multi-agent-coding-kit sample app.");
+  assert.equal(greet("Codex"), "Hello, Codex! This is the multi-agent-coding-kit sample app.");
 });
 
 test("throws without a name", () => {

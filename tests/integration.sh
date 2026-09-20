@@ -13,6 +13,19 @@ CLONE="$WORK/multi-agent-coding-kit"
 pass=0
 fail=0
 
+echo "== checking scripts are tracked as executable in git =="
+for f in scripts/setup-worktrees.sh scripts/launch-claude.sh scripts/launch-codex.sh scripts/cleanup-worktrees.sh; do
+  mode="$(git -C "$REPO_ROOT" ls-files -s "$f" | awk '{print $1}')"
+  if [ "$mode" != "100755" ]; then
+    echo "  FAIL: $f is tracked as mode $mode, not 100755 (executable)." >&2
+    echo "        Fix with: git update-index --chmod=+x $f" >&2
+    fail=$((fail + 1))
+  else
+    echo "  PASS: $f is executable"
+    pass=$((pass + 1))
+  fi
+done
+
 check() {
   local desc="$1"
   shift

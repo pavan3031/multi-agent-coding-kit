@@ -73,7 +73,7 @@ Created only `examples/sample-app/src/cli/index.js`:
 # (Agents never merge to main themselves — see CLAUDE.md/AGENTS.md.)
 ```
 
-Both agents started from the exact same commit, edited disjoint files, and opened separate PRs — no working-directory collisions, and in this case no merge conflicts either. `docs/demo.tape` is a [VHS](https://github.com/charmbracelet/vhs) script that replays a session like this one — see [Rendering the demo GIF](#rendering-the-demo-gif) to turn it into a video.
+Both agents started from the exact same commit, edited disjoint files, and opened separate PRs — no working-directory collisions, and in this case no merge conflicts either.
 
 ## Architecture
 
@@ -118,31 +118,6 @@ flowchart LR
 - [Claude Code](https://docs.claude.com/en/docs/claude-code/overview) (`claude` CLI)
 - [OpenAI Codex CLI](https://github.com/openai/codex) or an equivalent GPT-based coding agent (`codex` CLI) — swap in whatever agent you use, as long as it reads `AGENTS.md`
 - Node.js 20+ (only needed to run/lint/test `examples/sample-app`)
-
-## Rendering the demo GIF
-
-The repo ships a [VHS](https://github.com/charmbracelet/vhs) script at [docs/demo.tape](docs/demo.tape) that scripts the whole quickstart flow. To render it:
-
-```bash
-# macOS
-brew install vhs
-
-# Windows
-winget install charmbracelet.vhs Gyan.FFmpeg tsl0922.ttyd
-
-# Linux — see https://github.com/charmbracelet/vhs#installation
-
-vhs docs/demo.tape   # writes docs/demo.gif
-```
-
-Then add `![Demo](docs/demo.gif)` near the top of this README.
-
-Prefer a terminal recording over a scripted one? Use [asciinema](https://asciinema.org/) and [agg](https://github.com/asciinema/agg):
-
-```bash
-asciinema rec demo.cast
-agg demo.cast docs/demo.gif
-```
 
 ## FAQ
 
